@@ -58,7 +58,7 @@ describe("scoreDb: user overrides (mocked DB)", () => {
       rows: [{ feedback: "safe", note: "Works for me" }],
     });
 
-    const food = makeFood({ acidic: true }); // base IC likely "limit"
+    const food = makeFood({ name: "black coffee" }); // common IC trigger category
     const r = await scoreFoodForConditionsDb(food, ["IC"], {}, "user_2");
 
     expect(r.reasons.join(" ")).toMatch(/SAFE/i);
@@ -68,7 +68,7 @@ describe("scoreDb: user overrides (mocked DB)", () => {
   test("No override row returns normal scoring", async () => {
     (pool.query as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
-    const food = makeFood({ acidic: true });
+    const food = makeFood({ name: "black coffee" });
     const r = await scoreFoodForConditionsDb(food, ["IC"], {}, "user_3");
 
     expect(["limit", "avoid"]).toContain(r.rating);

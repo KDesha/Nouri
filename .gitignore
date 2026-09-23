@@ -6,7 +6,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-package-lock.json
 
 # build outputs
 dist/
@@ -26,3 +25,8 @@ Thumbs.db
 
 # Expo web
 web-build/
+
+# local secrets
+.env
+.env.*
+!.env.example

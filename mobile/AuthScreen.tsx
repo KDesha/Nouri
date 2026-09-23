@@ -1,95 +1,44 @@
 import React, { useMemo, useState } from "react";
 import {
-  SafeAreaView,
-  View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  Pressable,
-  StyleSheet,
-  Platform,
-  ScrollView,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { apiErrorMessage, apiRequest } from "./api";
+import { COLORS, SHADOW, TYPE } from "./theme";
 
-const API_BASE =
-  Platform.OS === "android" ? "http://10.0.2.2:4000" : "http://localhost:4000";
-
-type AuthResult = { id: string; username: string; name: string };
-
-const COLORS = {
-  bg: "#EFE6E0", // beige-white background
-  card: "#E9DBD3", // light pink boxes
-  text: "#2B1B1E",
-  muted: "#6B4B52",
-  border: "#D8C6C1",
-  accentDark: "#7A1E2D", // darker red (dropdown/labels)
-  berry: "#E35676", // lighter berry red (login button)
-  berryDark: "#C84560",
-  white: "#FFFFFF",
-};
-
-function PillButton({
-  title,
-  onPress,
-  variant = "primary",
-  disabled,
-}: {
-  title: string;
-  onPress: () => void;
-  variant?: "primary" | "outline";
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={[
-        styles.btn,
-        variant === "primary" ? styles.btnPrimary : styles.btnOutline,
-        disabled ? styles.btnDisabled : null,
-      ]}
-    >
-      <Text
-        style={[
-          styles.btnText,
-          variant === "primary" ? styles.btnTextPrimary : styles.btnTextOutline,
-        ]}
-      >
-        {title}
-      </Text>
-    </Pressable>
-  );
-}
+type AuthResult = { id: string; username: string; name: string; token: string };
 
 function Segmented({
   value,
   onChange,
-  options,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { key: string; label: string }[];
+  value: "login" | "signup";
+  onChange: (value: "login" | "signup") => void;
 }) {
   return (
-    <View style={styles.segment}>
-      {options.map((opt) => {
-        const active = opt.key === value;
+    <View style={styles.segment} accessibilityRole="tablist">
+      {([
+        ["login", "Log in"],
+        ["signup", "Sign up"],
+      ] as const).map(([key, label]) => {
+        const selected = value === key;
         return (
           <Pressable
-            key={opt.key}
-            onPress={() => onChange(opt.key)}
-            style={[
-              styles.segmentItem,
-              active ? styles.segmentItemActive : null,
-            ]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            key={key}
+            onPress={() => onChange(key)}
+            style={[styles.segmentItem, selected && styles.segmentItemActive]}
           >
-            <Text
-              style={[
-                styles.segmentText,
-                active ? styles.segmentTextActive : null,
-              ]}
-            >
-              {opt.label}
-            </Text>
+            <Text style={[styles.segmentText, selected && styles.segmentTextActive]}>{label}</Text>
           </Pressable>
         );
       })}
@@ -105,205 +54,256 @@ export default function AuthScreen({
   onGuest: () => void;
 }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
-
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("kayla");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const canSubmit = useMemo(() => {
-    if (!username.trim() || password.length < 6) return false;
-    if (mode === "signup" && !name.trim()) return false;
-    return true;
+    if (!/^[a-zA-Z0-9._-]{3,30}$/.test(username.trim()) || password.length < 6) return false;
+    return mode === "login" || !!name.trim();
   }, [mode, name, username, password]);
 
+  function switchMode(next: "login" | "signup") {
+    setMode(next);
+    setError("");
+  }
+
   async function submit() {
+    if (!canSubmit || loading) return;
     setLoading(true);
+    setError("");
+
     try {
-      const url =
-        mode === "login" ? `${API_BASE}/auth/login` : `${API_BASE}/auth/signup`;
+      const path = mode === "login" ? "/auth/login" : "/auth/signup";
       const body =
         mode === "login"
           ? { username: username.trim(), password }
           : { username: username.trim(), password, name: name.trim() };
 
-      const res = await fetch(url, {
+      const user = await apiRequest<AuthResult>(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Auth failed");
-
-      onAuthed(data as AuthResult);
-    } catch (e: any) {
-      alert(e.message);
+      onAuthed(user);
+    } catch (caught) {
+      setError(apiErrorMessage(caught));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Nouri</Text>
-          <Text style={styles.subtitle}>Log in or continue as guest</Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <Image source={require("./assets/nouri-icon.png")} style={styles.logo} />
+            <View style={styles.heroCopy}>
+              <Text style={styles.eyebrow}>FOOD THAT FITS YOU</Text>
+              <Text style={styles.title}>Meet Nouri</Text>
+              <Text style={styles.subtitle}>
+                Clearer nutrition guidance, shaped around your body and your goals.
+              </Text>
+            </View>
+          </View>
 
-        <View style={styles.card}>
-          <Segmented
-            value={mode}
-            onChange={(v) => setMode(v as any)}
-            options={[
-              { key: "login", label: "Login" },
-              { key: "signup", label: "Sign up" },
-            ]}
-          />
+          <View style={styles.card}>
+            <Segmented value={mode} onChange={switchMode} />
 
-          {mode === "signup" ? (
-            <>
-              <Text style={styles.label}>Name</Text>
+            {mode === "signup" ? (
+              <View style={styles.field}>
+                <Text style={styles.label}>Your name</Text>
+                <TextInput
+                  accessibilityLabel="Your name"
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  onChangeText={setName}
+                  placeholder="Kayla"
+                  placeholderTextColor={COLORS.muted}
+                  returnKeyType="next"
+                  style={styles.input}
+                  value={name}
+                />
+              </View>
+            ) : null}
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Username</Text>
               <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name"
+                accessibilityLabel="Username"
+                autoCapitalize="none"
+                autoComplete="username"
+                onChangeText={setUsername}
+                placeholder="3–30 letters or numbers"
                 placeholderTextColor={COLORS.muted}
+                returnKeyType="next"
                 style={styles.input}
-                autoCapitalize="words"
+                value={username}
               />
-              <View style={{ height: 12 }} />
-            </>
-          ) : null}
+            </View>
 
-          <Text style={styles.label}>Username</Text>
-          <TextInput
-            value={username}
-            onChangeText={setUsername}
-            placeholder="username"
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="none"
-          />
+            <View style={styles.field}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                accessibilityLabel="Password"
+                autoCapitalize="none"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                onChangeText={setPassword}
+                onSubmitEditing={submit}
+                placeholder="At least 6 characters"
+                placeholderTextColor={COLORS.muted}
+                returnKeyType="go"
+                secureTextEntry
+                style={styles.input}
+                value={password}
+              />
+            </View>
 
-          <View style={{ height: 12 }} />
+            {error ? (
+              <View style={styles.errorBox} accessibilityRole="alert">
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="min 6 characters"
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            secureTextEntry
-          />
+            <Pressable
+              accessibilityRole="button"
+              disabled={!canSubmit || loading}
+              onPress={submit}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                (!canSubmit || loading) && styles.disabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.primaryButtonText}>
+                {loading ? "One moment…" : mode === "login" ? "Log in" : "Create my account"}
+              </Text>
+            </Pressable>
 
-          <View style={{ height: 14 }} />
+            <Pressable
+              accessibilityRole="button"
+              onPress={onGuest}
+              style={({ pressed }) => [styles.guestButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.guestButtonText}>Explore as a guest</Text>
+            </Pressable>
+          </View>
 
-          <PillButton
-            title={
-              loading
-                ? mode === "login"
-                  ? "Logging in..."
-                  : "Creating account..."
-                : mode === "login"
-                  ? "Login"
-                  : "Create Account"
-            }
-            onPress={submit}
-            disabled={!canSubmit || loading}
-            variant="primary"
-          />
+          <View style={styles.tipRow}>
+            <Text style={styles.tipIcon}>🥕</Text>
+            <Text style={styles.tipText}>
+              Search USDA nutrition data, compare it with your needs, and remember what works for you.
+            </Text>
+          </View>
 
-          <View style={{ height: 10 }} />
-
-          <PillButton title="Continue as Guest" onPress={onGuest} variant="outline" />
-        </View>
-
-        <Text style={styles.footer}>
-          API: <Text style={styles.mono}>{API_BASE}</Text>
-        </Text>
-      </ScrollView>
+          <Text style={styles.disclaimer}>
+            Nouri offers educational guidance, not medical diagnosis or treatment.
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 18, paddingBottom: 30 },
-
-  header: { marginTop: 10, marginBottom: 16 },
-  title: { color: COLORS.accentDark, fontSize: 34, fontWeight: "900" },
-  subtitle: { color: COLORS.muted, marginTop: 6, fontSize: 14 },
-
+  flex: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: COLORS.canvas },
+  content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 28 },
+  hero: { flexDirection: "row", alignItems: "center", marginBottom: 22 },
+  logo: { width: 92, height: 92, borderRadius: 28, marginRight: 16 },
+  heroCopy: { flex: 1 },
+  eyebrow: {
+    color: COLORS.coral,
+    fontFamily: TYPE.body,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+  title: {
+    color: COLORS.green,
+    fontFamily: TYPE.display,
+    fontSize: 34,
+    fontWeight: "800",
+    letterSpacing: -0.8,
+    marginTop: 3,
+  },
+  subtitle: { color: COLORS.muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
   card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
+    backgroundColor: COLORS.surface,
     borderColor: COLORS.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    borderRadius: 28,
+    borderWidth: 1,
+    padding: 18,
+    ...SHADOW,
   },
-
   segment: {
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 16,
     flexDirection: "row",
-    backgroundColor: COLORS.bg,
-    borderRadius: 14,
+    marginBottom: 18,
     padding: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 14,
   },
-  segmentItem: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  segmentItemActive: { backgroundColor: COLORS.white },
-  segmentText: { color: COLORS.accentDark, fontWeight: "800" },
-  segmentTextActive: { color: COLORS.accentDark },
-
-  label: { color: COLORS.accentDark, fontWeight: "800", marginBottom: 6 },
+  segmentItem: { alignItems: "center", borderRadius: 13, flex: 1, paddingVertical: 10 },
+  segmentItemActive: { backgroundColor: COLORS.green },
+  segmentText: { color: COLORS.greenSoft, fontSize: 14, fontWeight: "800" },
+  segmentTextActive: { color: COLORS.white },
+  field: { marginBottom: 14 },
+  label: { color: COLORS.ink, fontSize: 13, fontWeight: "800", marginBottom: 7 },
   input: {
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
+    backgroundColor: COLORS.canvas,
     borderColor: COLORS.border,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    color: COLORS.text,
-  },
-
-  btn: {
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    alignItems: "center",
-  },
-  btnPrimary: { backgroundColor: COLORS.berry },
-  btnOutline: {
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.accentDark,
-    backgroundColor: "transparent",
+    color: COLORS.ink,
+    fontSize: 16,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { fontWeight: "900" },
-  btnTextPrimary: { color: COLORS.white },
-  btnTextOutline: { color: COLORS.accentDark },
-
-  footer: { marginTop: 14, textAlign: "center", color: COLORS.muted },
-  mono: {
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    color: COLORS.accentDark,
+  errorBox: {
+    backgroundColor: COLORS.dangerSoft,
+    borderRadius: 14,
+    marginBottom: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
+  errorText: { color: COLORS.danger, fontSize: 13, lineHeight: 18 },
+  primaryButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.coral,
+    borderRadius: 16,
+    paddingVertical: 14,
+  },
+  primaryButtonText: { color: COLORS.white, fontSize: 16, fontWeight: "900" },
+  guestButton: {
+    alignItems: "center",
+    borderColor: COLORS.green,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginTop: 10,
+    paddingVertical: 13,
+  },
+  guestButtonText: { color: COLORS.green, fontSize: 15, fontWeight: "900" },
+  disabled: { opacity: 0.45 },
+  pressed: { opacity: 0.78 },
+  tipRow: {
+    alignItems: "center",
+    backgroundColor: COLORS.mint,
+    borderRadius: 20,
+    flexDirection: "row",
+    marginTop: 18,
+    padding: 15,
+  },
+  tipIcon: { fontSize: 24, marginRight: 12 },
+  tipText: { color: COLORS.green, flex: 1, fontSize: 13, lineHeight: 19 },
+  disclaimer: { color: COLORS.muted, fontSize: 11, lineHeight: 16, marginTop: 18, textAlign: "center" },
 });

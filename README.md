@@ -1,151 +1,155 @@
-# Nouri - Condition Nutrition App
+# Nouri
 
-Nouri is a condition-based nutrition application created to help users make more informed food choices based on their personal health conditions and dietary needs. The purpose of the app is to simplify nutrition information and make it easier to understand how different foods may fit into a user’s lifestyle.
+Nouri is a cross-platform nutrition guidance app for iPhone and Android. It combines USDA FoodData Central nutrition data with transparent screening notes for IBS, bladder/IC, kidney health, Crohn’s disease, GERD, diabetes, high blood pressure, and heart health.
 
-Rather than expecting users to interpret every nutrition label on their own, Nouri is designed to provide clearer guidance through nutrition data, food scoring, and condition-based recommendations. The project combines a backend, database, and mobile interface to support a more user-friendly nutrition experience.
+The mobile app is built with Expo and React Native, so the same TypeScript interface ships to both stores. The backend is an Express API backed by PostgreSQL.
 
-> **Project Status:** This project is still a work in progress. While the core structure and major functionality have been built, future improvements, refinements, and feature additions are still planned.
+> Nouri is educational. It does not diagnose, treat, or replace advice from a physician or registered dietitian.
 
-## Overview
+## What is included
 
-Nouri was developed as a senior project to address the challenge many people face when trying to determine whether a food is a good choice for their specific dietary concerns. Nutrition labels can be confusing, ingredient lists are not always easy to interpret, and different health conditions often require users to pay attention to different nutritional factors.
+- Native iOS and Android app configuration
+- EAS preview and production build profiles
+- A clean, food-focused interface and original Nouri app icon
+- Food-family search that groups broad terms such as chicken into cuts and tomato into useful varieties
+- An optional Edamam trial preview for testing natural phrases such as “2 cups banana pudding” without replacing USDA nutrition
+- A compact main result list with additional preparations and products in an optional “Other forms” sheet
+- Household serving choices and serving-based nutrition estimates
+- Clear serving-based nutrition estimates and honest missing-data states
+- Expanded total sugar, cholesterol, calcium, iron, and vitamin D fields
+- IBS guidance for everyday use and the three low-FODMAP phases
+- GERD, diabetes, high-blood-pressure, and heart-health screening
+- Lab- and care-plan-aware kidney potassium/phosphorus settings
+- Serving-, ripeness-, and ingredient-sensitive IBS warnings
+- Personal safe/trigger reactions for logged-in users
+- Account-level health priorities and saved doctor/dietitian recommendations
+- Signed account sessions and in-app permanent account deletion
+- Backward-safe PostgreSQL schema upgrades
 
-This app aims to make that process easier by organizing nutrition-related data into a more understandable and accessible format.
+## Project layout
 
-## Features
+```text
+backend/    Express API, authentication, USDA integration, and scoring
+database/   PostgreSQL schema and local seed foods
+mobile/     Expo React Native app and store build configuration
+docs/       Store release checklist
+```
 
-- Condition-based food guidance
-- Nutrition data lookup
-- Food scoring and rule-based evaluation
-- Backend support for food and nutrition processing
-- Mobile app screens for user interaction
-- Database schema and seed files
-- Automated backend test coverage for core logic
+## Local setup
 
-## Project Structure
+Requirements: Node.js 22.13 or newer, npm, and PostgreSQL.
 
-condition-nutrition-app/
-- backend/
-- database/
-- mobile/
+### 1. Backend
 
-### backend/
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm run db:migrate
+npm run dev
+```
 
-The backend contains the main application logic, authentication-related files, food data handling, scoring logic, nutrition processing, database connections, and automated tests.
+Set these private values in `backend/.env`:
 
-Example backend-related files include:
+- `DATABASE_URL`: PostgreSQL connection string
+- `FDC_API_KEY`: USDA FoodData Central API key
+- `JWT_SECRET`: long, random production session secret
+- `PORT`: optional; defaults to `4000`
 
-- src/database.ts
-- src/fdcClient.ts
-- src/foodsRepo.ts
-- src/nutritionData.ts
-- src/rules.ts
-- src/scoreDb.ts
-- src/PHLocal.ts
+Edamam is optional. If you want to compare its search interpretation with Nouri's USDA results, follow [the Edamam trial guide](docs/EDAMAM_TRIAL.md). Its credentials stay in the backend and are never added to the mobile app.
 
-The backend also includes test files such as:
+### 2. Mobile app
 
-- auth.api.test.ts
-- phLocal.test.ts
-- scoreDb.overrides.test.ts
-- scoreDb.scoring.test.ts
-- scoreDb.unit.test.ts
+```bash
+cd mobile
+cp .env.example .env
+npm install
+npm start
+```
 
-### database/
+For a physical phone or store build, `EXPO_PUBLIC_API_URL` must be the public HTTPS URL of the deployed backend. `localhost` and `10.0.2.2` are development fallbacks only.
 
-The database folder contains SQL files used to build and populate the database.
+### Run in Xcode
 
-Files include:
+On a Mac with Xcode and CocoaPods installed, generate the native project and install its pods:
 
-- nouri_schema.sql
-- nouri_seed.sql
+```bash
+cd mobile
+npx expo prebuild --platform ios
+cd ios
+pod install
+open Nouri.xcworkspace
+```
 
-### mobile/
+In Xcode, select the `Nouri` scheme, choose an iPhone Simulator, and press Run. Keep `npm start -- --dev-client --host localhost` running from `mobile/` and `npm run dev` running from `backend/`. You can also build, install, and launch the simulator app in one step with `npm run ios`.
 
-The mobile folder contains the user-facing mobile interface and screens for the app.
+## Quality checks
 
-Files currently include:
+```bash
+cd backend
+npm run build
+npm test -- --runInBand
 
-- AuthScreen.tsx
-- DemoScreen.tsx
+cd ../mobile
+npm run typecheck
+npx expo-doctor
+```
 
-## Tech Stack
+## Build downloadable apps
 
-This project includes a combination of the following technologies:
+From `mobile/`, sign in to an Expo account and associate the project with EAS:
 
-- TypeScript / JavaScript
-- Mobile application components
-- Backend API and business logic
-- SQL database structure and seed files
-- Automated testing tools
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest init
+```
 
-## Purpose of the Project
+Create an installable Android preview APK:
 
-The purpose of Nouri is to help users make more confident and informed food choices based on dietary needs and selected health conditions. The app is intended to reduce confusion around nutrition labels and create a more supportive experience for users trying to evaluate what foods may or may not be a good fit for them.
+```bash
+npm run build:preview:android
+```
 
-This project was also developed as part of a senior project, combining planning, design, implementation, testing, and documentation into a complete application concept.
+Create production store builds:
 
-## Current Status
+```bash
+npm run build:android
+npm run build:ios
+```
 
-Nouri is currently in development and should be considered a work in progress.
+Submit the latest builds after the store records and legal URLs are ready:
 
-At this stage, the project includes its main structure, supporting files, database setup, mobile screens, and backend logic. Core functionality has been developed and tested, but the project is still open to further improvement.
+```bash
+npx eas-cli@latest submit --platform android --latest
+npx eas-cli@latest submit --platform ios --latest
+```
 
-Planned future improvements may include:
+Apple production builds and App Store submission require an Apple Developer Program account. Google Play submission requires a Play Console developer account. See [docs/STORE_RELEASE.md](docs/STORE_RELEASE.md) before submitting.
 
-- Expanded condition support
-- Improved mobile interface and user experience
-- More detailed food recommendations
-- Expanded nutrition database integration
-- Additional testing and validation
-- Performance improvements
-- Better personalization options for users
+If you are changing screens, colors, wording, icons, or navigation, [the app interface guide](docs/APP_INTERFACE.md) explains how the pieces fit together and how to preview changes in Expo and Xcode.
 
-## Setup Instructions
+## Nutrition and IBS methodology
 
-Setup may vary depending on your environment and which portion of the project you want to run, but the general process is:
+USDA FoodData Central nutrients are stored per 100 g, then estimated for the household serving the user selects. A dash means the source did not report a nutrient; it never means zero.
 
-1. Clone the repository
-2. Install dependencies
-3. Configure environment variables
-4. Set up the database using the schema and seed files
-5. Start the backend
-6. Run the mobile application
+The IBS check is intentionally conservative. Food names are screened against common examples from NIDDK, but a name cannot capture serving size, ripeness, recipe ingredients, or individual tolerance. The low-FODMAP experience follows the three-step structure described by Monash University: a short swap phase, structured reintroduction, and long-term personalization.
 
-### Example general steps
+Primary references:
 
-git clone <your-repository-url>
-cd condition-nutrition-app
+- [NIDDK: Eating, Diet, & Nutrition for IBS](https://www.niddk.nih.gov/health-information/digestive-diseases/irritable-bowel-syndrome/eating-diet-nutrition)
+- [Monash University: Starting the Low FODMAP Diet](https://www.monashfodmap.com/ibs-central/i-have-ibs/starting-the-low-fodmap-diet/)
+- [USDA FoodData Central](https://fdc.nal.usda.gov/)
 
-Then install project dependencies in the appropriate folders and run the necessary services based on your local setup.
+See [docs/MEDICAL_METHOD.md](docs/MEDICAL_METHOD.md) for the condition-by-condition logic, primary references, limitations, and conditions Nouri intentionally does not infer from the available data.
 
-## Database
+## Search categorization
 
-The database portion of the project includes:
+Nouri uses a deterministic food-family classifier before displaying USDA results. Broad searches can produce several useful general categories, while prepared dishes and specialty records stay behind “Other forms.” The classifier is deliberately testable and does not invent foods or nutrition values.
 
-- A schema file for creating the project database structure
-- A seed file for inserting starting data
+A future AI fallback can help map unfamiliar wording to a known food family, but USDA records should remain the nutrition source and generative AI should never create nutrient values or medical ratings.
 
-These files are located in the database/ folder and are intended to support the backend logic used for food and nutrition-related processing.
+The optional Edamam trial is deliberately narrower than a provider switch. It sends a search only when a person presses Search, displays up to two live interpretations, and does not save Edamam results in Nouri's database. Choosing an interpretation starts a USDA search for that wording. This lets the team judge whether Edamam makes food entry feel more natural while preserving Nouri's existing data rights and scoring behavior.
 
-## Testing
+## Security note
 
-The backend includes multiple test files to help validate functionality related to:
-
-- Authentication behavior
-- Local pH-related processing
-- Food scoring logic
-- Override handling
-- General database scoring behavior
-
-Testing is included to support reliability and verify that the project’s core logic behaves as expected.
-
-## Notes
-
-This repository reflects the current development version of Nouri. Because the project is still evolving, files, features, and functionality may continue to change over time.
-
-If you are viewing this project on GitHub, please note that this version represents the current state of development and not necessarily the final version of the application.
-
-## Authors
-
-Created as part of a senior project by Kayla DeShasier
+Never commit `.env` files. This repository previously tracked `backend/.env`; remove it from Git tracking and rotate every credential it has contained before any public release. Adding it to `.gitignore` prevents future accidental additions but does not remove secrets from Git history.

@@ -26,6 +26,7 @@ describe("Auth API", () => {
 
     expect(signup.status).toBe(200);
     expect(signup.body).toHaveProperty("id");
+    expect(signup.body).toHaveProperty("token");
     expect(signup.body.username).toBe(u.username);
 
     const login = await request(app)
@@ -34,6 +35,7 @@ describe("Auth API", () => {
 
     expect(login.status).toBe(200);
     expect(login.body).toHaveProperty("id");
+    expect(login.body).toHaveProperty("token");
     expect(login.body.username).toBe(u.username);
 
     // cleanup (optional but nice)
@@ -86,6 +88,56 @@ describe("Auth API", () => {
       .send({ username: u.username, password: u.password, name: u.name });
 
     expect(dup.status).toBe(409);
+
+    await pool.query(`DELETE FROM users WHERE username = $1`, [u.username]);
+  });
+
+  test("A logged-in user can permanently delete their account", async () => {
+    const u = randUser();
+    const signup = await request(app)
+      .post("/auth/signup")
+      .send({ username: u.username, password: u.password, name: u.name });
+
+    const deleted = await request(app)
+      .delete("/user/account")
+      .set("Authorization", `Bearer ${signup.body.token}`);
+    expect(deleted.status).toBe(200);
+    expect(deleted.body.ok).toBe(true);
+
+    const login = await request(app)
+      .post("/auth/login")
+      .send({ username: u.username, password: u.password });
+    expect(login.status).toBe(401);
+  });
+
+  test("A logged-in user can save health priorities and care-team notes", async () => {
+    const u = randUser();
+    const signup = await request(app)
+      .post("/auth/signup")
+      .send({ username: u.username, password: u.password, name: u.name });
+
+    const saved = await request(app)
+      .post("/user/conditions")
+      .set("Authorization", `Bearer ${signup.body.token}`)
+      .send({
+        conditions: ["IBS", "KidneyDisease"],
+        settings: {
+          ibsMode: "reintroduction",
+          kidneyStage: 3,
+          kidneyLimitPotassium: true,
+        },
+        doctorRecommendations: "Follow my personalized sodium target.",
+      });
+    expect(saved.status).toBe(200);
+
+    const loaded = await request(app)
+      .get("/user/conditions")
+      .set("Authorization", `Bearer ${signup.body.token}`);
+    expect(loaded.status).toBe(200);
+    expect(loaded.body.doctorRecommendations).toBe("Follow my personalized sodium target.");
+    expect(loaded.body.conditions.map((item: any) => item.condition_id)).toEqual(
+      expect.arrayContaining(["IBS", "KidneyDisease"])
+    );
 
     await pool.query(`DELETE FROM users WHERE username = $1`, [u.username]);
   });

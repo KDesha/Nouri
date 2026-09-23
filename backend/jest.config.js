@@ -5,6 +5,8 @@ const tsJestTransformCfg = createDefaultPreset().transform;
 /** @type {import("jest").Config} **/
 module.exports = {
   testEnvironment: "node",
+  watchman: false,
+  testTimeout: 15000,
   setupFiles: ["<rootDir>/jest.setup.ts"], // ✅ add this
   transform: {
     ...tsJestTransformCfg,

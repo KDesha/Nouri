@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT,
   username TEXT UNIQUE,
   name TEXT,
+  doctor_recommendations TEXT,
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- (These will no-op if the column already exists.)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS doctor_recommendations TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- Make username unique if it exists (safe attempt)
@@ -49,8 +51,13 @@ CREATE TABLE IF NOT EXISTS foods (
   brand TEXT,
   fdc_id BIGINT UNIQUE,
   source TEXT NOT NULL DEFAULT 'demo',
+  data_type TEXT,
+  serving_options JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE foods ADD COLUMN IF NOT EXISTS data_type TEXT;
+ALTER TABLE foods ADD COLUMN IF NOT EXISTS serving_options JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 -- Helpful for cached search
 CREATE INDEX IF NOT EXISTS foods_name_idx ON foods (name);
@@ -71,14 +78,26 @@ CREATE TABLE IF NOT EXISTS food_nutrients (
   phosphorus_mg NUMERIC,
 
   fiber_g NUMERIC,
+  total_sugars_g NUMERIC,
   added_sugars_g NUMERIC,
   saturated_fat_g NUMERIC,
+  cholesterol_mg NUMERIC,
+  calcium_mg NUMERIC,
+  iron_mg NUMERIC,
+  vitamin_d_mcg NUMERIC,
 
   acidic BOOLEAN,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Safe upgrades for databases created before the expanded nutrition panel.
+ALTER TABLE food_nutrients ADD COLUMN IF NOT EXISTS total_sugars_g NUMERIC;
+ALTER TABLE food_nutrients ADD COLUMN IF NOT EXISTS cholesterol_mg NUMERIC;
+ALTER TABLE food_nutrients ADD COLUMN IF NOT EXISTS calcium_mg NUMERIC;
+ALTER TABLE food_nutrients ADD COLUMN IF NOT EXISTS iron_mg NUMERIC;
+ALTER TABLE food_nutrients ADD COLUMN IF NOT EXISTS vitamin_d_mcg NUMERIC;
 
 -- ---------------------------------------------
 -- USER CONDITIONS + SETTINGS (per condition)
@@ -90,6 +109,8 @@ CREATE TABLE IF NOT EXISTS user_conditions (
 
   -- optional per-condition settings
   kidney_stage INTEGER,
+  kidney_limit_potassium BOOLEAN,
+  kidney_limit_phosphorus BOOLEAN,
   crohns_state TEXT,
   ibs_mode TEXT,
 
@@ -98,6 +119,9 @@ CREATE TABLE IF NOT EXISTS user_conditions (
 
   PRIMARY KEY (user_id, condition_id)
 );
+
+ALTER TABLE user_conditions ADD COLUMN IF NOT EXISTS kidney_limit_potassium BOOLEAN;
+ALTER TABLE user_conditions ADD COLUMN IF NOT EXISTS kidney_limit_phosphorus BOOLEAN;
 
 CREATE INDEX IF NOT EXISTS user_conditions_user_idx ON user_conditions(user_id);
 
