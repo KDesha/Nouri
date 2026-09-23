@@ -914,7 +914,7 @@ export default function DemoScreen({
             <View style={styles.results}>
               {searchResult.smartSearch?.enabled ? (
                 <View style={styles.smartSearchBox}>
-                  <Text style={styles.smartSearchEyebrow}>OPTIONAL SEARCH TRIAL</Text>
+                  <Text style={styles.smartSearchEyebrow}>SMART SEARCH MATCH</Text>
                   <Text style={styles.smartSearchTitle}>
                     {searchResult.smartSearch.matches.length
                       ? "Edamam understood your search as"

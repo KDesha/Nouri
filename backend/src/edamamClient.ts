@@ -47,9 +47,12 @@ type EdamamParserResponse = {
 
 const EDAMAM_PARSER_URL = "https://api.edamam.com/api/food-database/v2/parser";
 
-export function edamamTrialEnabled(env: NodeJS.ProcessEnv = process.env) {
+export function edamamEnabled(env: NodeJS.ProcessEnv = process.env) {
+  // EDAMAM_TRIAL_ENABLED is accepted temporarily so existing local setups
+  // continue working after the integration was moved to a paid plan.
+  const enabled = env.EDAMAM_ENABLED ?? env.EDAMAM_TRIAL_ENABLED;
   return (
-    env.EDAMAM_TRIAL_ENABLED === "true" &&
+    enabled === "true" &&
     Boolean(env.EDAMAM_APP_ID?.trim()) &&
     Boolean(env.EDAMAM_APP_KEY?.trim())
   );
@@ -108,7 +111,7 @@ function matchFromFood(
 
 /**
  * Turn Edamam's parser response into a short, stable preview. Nothing returned
- * here is written to Nouri's database; the trial is only a live search aid.
+ * here is written to Nouri's database; Edamam is used only as a live search aid.
  */
 export function normalizeEdamamMatches(data: EdamamParserResponse, limit = 2) {
   const hintsByFoodId = new Map(
@@ -134,17 +137,25 @@ export function normalizeEdamamMatches(data: EdamamParserResponse, limit = 2) {
   }
 
   const seen = new Set<string>();
-  return candidates
+  const uniqueMatches = candidates
     .filter((match) => {
       if (seen.has(match.foodId)) return false;
       seen.add(match.foodId);
       return true;
-    })
+    });
+
+  // When Edamam finds a general food first, do not clutter the short preview
+  // with branded products that merely contain the same word (for example, a
+  // restaurant banana shake after a search for a banana). Branded searches
+  // still keep branded alternatives because the leading match has a brand.
+  const leadingMatch = uniqueMatches[0];
+  return uniqueMatches
+    .filter((match, index) => index === 0 || Boolean(leadingMatch?.brand) || !match.brand)
     .slice(0, limit);
 }
 
 export async function edamamSmartSearch(query: string): Promise<EdamamSmartMatch[]> {
-  if (!edamamTrialEnabled()) return [];
+  if (!edamamEnabled()) return [];
 
   const params = new URLSearchParams({
     app_id: process.env.EDAMAM_APP_ID!.trim(),

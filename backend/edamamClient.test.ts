@@ -1,10 +1,10 @@
 import {
+  edamamEnabled,
   edamamSmartSearch,
-  edamamTrialEnabled,
   normalizeEdamamMatches,
 } from "./src/edamamClient";
 
-describe("Edamam trial search", () => {
+describe("Edamam smart search", () => {
   const originalEnv = { ...process.env };
   const originalFetch = global.fetch;
 
@@ -14,15 +14,23 @@ describe("Edamam trial search", () => {
     jest.restoreAllMocks();
   });
 
-  test("stays off unless the explicit trial flag and both credentials are present", () => {
-    process.env.EDAMAM_TRIAL_ENABLED = "true";
+  test("stays off unless the explicit feature flag and both credentials are present", () => {
+    process.env.EDAMAM_ENABLED = "true";
     delete process.env.EDAMAM_APP_ID;
     delete process.env.EDAMAM_APP_KEY;
-    expect(edamamTrialEnabled()).toBe(false);
+    expect(edamamEnabled()).toBe(false);
 
     process.env.EDAMAM_APP_ID = "demo-id";
     process.env.EDAMAM_APP_KEY = "demo-key";
-    expect(edamamTrialEnabled()).toBe(true);
+    expect(edamamEnabled()).toBe(true);
+  });
+
+  test("accepts the previous trial flag for existing local setups", () => {
+    delete process.env.EDAMAM_ENABLED;
+    process.env.EDAMAM_TRIAL_ENABLED = "true";
+    process.env.EDAMAM_APP_ID = "demo-id";
+    process.env.EDAMAM_APP_KEY = "demo-key";
+    expect(edamamEnabled()).toBe(true);
   });
 
   test("puts the parsed match first and keeps only simple live preview data", () => {
@@ -62,8 +70,36 @@ describe("Edamam trial search", () => {
     });
   });
 
+  test("hides branded product clutter after a general food match", () => {
+    const matches = normalizeEdamamMatches({
+      parsed: [
+        {
+          food: { foodId: "food_banana", label: "Banana", category: "Generic foods" },
+          quantity: 1,
+          measure: { label: "Whole" },
+        },
+      ],
+      hints: [
+        {
+          food: { foodId: "food_banana", label: "Banana", category: "Generic foods" },
+          measures: [{ label: "Whole", weight: 118 }],
+        },
+        {
+          food: {
+            foodId: "food_banana_shake",
+            label: "Restaurant Banana Shake",
+            brand: "Example Restaurant",
+            category: "Packaged foods",
+          },
+        },
+      ],
+    });
+
+    expect(matches.map((match) => match.label)).toEqual(["Banana"]);
+  });
+
   test("sends credentials only from the backend and returns normalized results", async () => {
-    process.env.EDAMAM_TRIAL_ENABLED = "true";
+    process.env.EDAMAM_ENABLED = "true";
     process.env.EDAMAM_APP_ID = "demo-id";
     process.env.EDAMAM_APP_KEY = "demo-key";
     global.fetch = jest.fn().mockResolvedValue({

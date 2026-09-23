@@ -12,7 +12,7 @@ The mobile app is built with Expo and React Native, so the same TypeScript inter
 - EAS preview and production build profiles
 - A clean, food-focused interface and original Nouri app icon
 - Food-family search that groups broad terms such as chicken into cuts and tomato into useful varieties
-- An optional Edamam trial preview for testing natural phrases such as “2 cups banana pudding” without replacing USDA nutrition
+- Paid Edamam search assistance for natural phrases such as “2 cups banana pudding” without replacing USDA nutrition
 - A compact main result list with additional preparations and products in an optional “Other forms” sheet
 - Household serving choices and serving-based nutrition estimates
 - Clear serving-based nutrition estimates and honest missing-data states
@@ -56,7 +56,7 @@ Set these private values in `backend/.env`:
 - `JWT_SECRET`: long, random production session secret
 - `PORT`: optional; defaults to `4000`
 
-Edamam is optional. If you want to compare its search interpretation with Nouri's USDA results, follow [the Edamam trial guide](docs/EDAMAM_TRIAL.md). Its credentials stay in the backend and are never added to the mobile app.
+Edamam is optional. To enable its paid search interpretation alongside Nouri's USDA results, follow [the Edamam integration guide](docs/EDAMAM.md). Its credentials stay in the backend and are never added to the mobile app.
 
 ### 2. Mobile app
 
@@ -148,7 +148,7 @@ Nouri uses a deterministic food-family classifier before displaying USDA results
 
 A future AI fallback can help map unfamiliar wording to a known food family, but USDA records should remain the nutrition source and generative AI should never create nutrient values or medical ratings.
 
-The optional Edamam trial is deliberately narrower than a provider switch. It sends a search only when a person presses Search, displays up to two live interpretations, and does not save Edamam results in Nouri's database. Choosing an interpretation starts a USDA search for that wording. This lets the team judge whether Edamam makes food entry feel more natural while preserving Nouri's existing data rights and scoring behavior.
+The Edamam integration is deliberately narrower than a provider switch. It sends a query only when a person presses Search, displays up to two live interpretations, and does not save Edamam results in Nouri's database. Choosing an interpretation starts a USDA search for that wording. Edamam helps make food entry feel more natural while USDA remains the nutrition source used by Nouri's scoring system.
 
 ## Security note
 

@@ -27,7 +27,7 @@ import {
   expandedFoodQueries,
   groupFoodSearchMatches,
 } from "./fdcClient";
-import { edamamSmartSearch, edamamTrialEnabled } from "./edamamClient";
+import { edamamEnabled, edamamSmartSearch } from "./edamamClient";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -348,7 +348,7 @@ app.get("/foods/search", async (req, res) => {
     if (!q) return res.status(400).json({ error: "q is required" });
     if (q.length > 80) return res.status(400).json({ error: "Search is too long" });
 
-    const smartSearchEnabled = edamamTrialEnabled();
+    const smartSearchEnabled = edamamEnabled();
     const smartSearchPromise = smartSearchEnabled
       ? edamamSmartSearch(q)
           .then((matches) => ({ matches, warning: undefined as string | undefined }))
