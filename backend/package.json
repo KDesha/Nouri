@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
+    "build:netlify": "npm run build && tsc --noEmit -p tsconfig.netlify.json",
     "start": "node dist/index.js",
     "test": "jest",
     "db:migrate": "ts-node src/migrate.ts ../database/nouri_schema.sql"
@@ -18,7 +19,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "pg": "^8.18.0"
+    "pg": "^8.18.0",
+    "serverless-http": "^4.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

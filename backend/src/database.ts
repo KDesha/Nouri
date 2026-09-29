@@ -10,4 +10,10 @@ if (!connectionString) {
 
 export const pool = new Pool({
   connectionString,
+  // Serverless instances can scale horizontally. Keep each warm Netlify
+  // function's pool intentionally small so they do not exhaust PostgreSQL.
+  max: process.env.NETLIFY ? 2 : undefined,
+  idleTimeoutMillis: process.env.NETLIFY ? 10_000 : undefined,
+  connectionTimeoutMillis: process.env.NETLIFY ? 10_000 : undefined,
+  allowExitOnIdle: Boolean(process.env.NETLIFY),
 });
