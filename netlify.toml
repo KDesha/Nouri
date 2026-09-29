@@ -1,9 +1,9 @@
 [build]
-  base = "backend"
-  command = "npm run build:netlify"
+  command = "npm --prefix backend ci && npm --prefix backend run build:netlify"
+  publish = "backend/public"
 
 [functions]
-  directory = "netlify/functions"
+  directory = "backend/netlify/functions"
   node_bundler = "esbuild"
   external_node_modules = ["express", "pg", "serverless-http"]
 
@@ -12,4 +12,3 @@
   to = "/.netlify/functions/api/:splat"
   status = 200
   force = true
-
