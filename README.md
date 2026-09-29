@@ -81,7 +81,7 @@ pod install
 open Nouri.xcworkspace
 ```
 
-In Xcode, select the `Nouri` scheme, choose an iPhone Simulator, and press Run. Keep `npm start -- --dev-client --host localhost` running from `mobile/` and `npm run dev` running from `backend/`. You can also build, install, and launch the simulator app in one step with `npm run ios`.
+In Xcode, select the `Nouri` scheme, choose an iPhone Simulator, and press Run. For a simulator, keep `npm start -- --dev-client --host localhost` running from `mobile/`. For a physical iPhone on the same Wi-Fi, use `npm start -- --dev-client --host lan`. Keep `npm run dev` running from `backend/` for local API access. You can also build, install, and launch the simulator app in one step with `npm run ios`.
 
 ## Quality checks
 
@@ -125,6 +125,8 @@ npx eas-cli@latest submit --platform ios --latest
 ```
 
 Apple production builds and App Store submission require an Apple Developer Program account. Google Play submission requires a Play Console developer account. See [docs/STORE_RELEASE.md](docs/STORE_RELEASE.md) before submitting.
+
+For an installable iPhone preview that works away from the development computer, Nouri uses the public Netlify API and EAS internal distribution. Follow [the remote testing guide](docs/REMOTE_TESTING.md).
 
 If you are changing screens, colors, wording, icons, or navigation, [the app interface guide](docs/APP_INTERFACE.md) explains how the pieces fit together and how to preview changes in Expo and Xcode.
 

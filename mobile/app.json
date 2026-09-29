@@ -46,6 +46,12 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b8f4db63-3c7f-4ea1-aa89-b250bc18f03c"
+      }
+    },
+    "owner": "kdesha"
   }
 }
